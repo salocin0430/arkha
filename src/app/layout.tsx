@@ -16,7 +16,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning className="bg-gradient-to-br from-[#0042A6] to-[#07173F] h-screen overflow-hidden">
         <PersistentNavbar />
-        <main className="h-full">
+        <main className="h-[calc(100vh-80px)] overflow-y-auto scrollbar-thin scrollbar-thumb-[#EAFE07]/30 scrollbar-track-transparent hover:scrollbar-thumb-[#EAFE07]/50" style={{marginTop: '80px'}}>
           {children}
         </main>
       </body>

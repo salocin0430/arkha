@@ -10,6 +10,15 @@ export interface Mission {
   status: 'draft' | 'published' | 'archived';
   createdAt: Date;
   updatedAt: Date;
+  // Author information (optional, only available in public missions)
+  author?: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  // Like information
+  likesCount?: number;
+  isLikedByUser?: boolean;
 }
 
 export interface CreateMissionRequest {

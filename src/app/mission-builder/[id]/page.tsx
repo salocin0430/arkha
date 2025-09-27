@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import MissionStatusSelector from '@/components/MissionStatusSelector';
 import DeleteMissionModal from '@/components/DeleteMissionModal';
+import InlineEdit from '@/components/InlineEdit';
 import { useAuth } from '@/hooks/useAuth';
 import { useMissions } from '@/hooks/useMissions';
 import { Mission } from '@/domain/entities/Mission';
@@ -14,7 +15,7 @@ export default function MissionDetail() {
   const { id } = useParams();
   const router = useRouter();
   const { user } = useAuth();
-  const { publishMission, updateMissionStatus, deleteMission } = useMissions();
+  const { publishMission, updateMissionStatus, deleteMission, updateMission } = useMissions();
   const [mission, setMission] = useState<Mission | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,6 +105,30 @@ export default function MissionDetail() {
     setDeleteModal({ isOpen: false, mission: null });
   };
 
+  const handleUpdateTitle = async (newTitle: string) => {
+    if (!mission) return;
+    try {
+      const { missionRepository } = await import('@/application/services/AppService');
+      const updatedMission = await missionRepository.update(mission.id, { title: newTitle });
+      setMission(updatedMission);
+    } catch (error) {
+      console.error('Error updating title:', error);
+      throw error;
+    }
+  };
+
+  const handleUpdateDescription = async (newDescription: string) => {
+    if (!mission) return;
+    try {
+      const { missionRepository } = await import('@/application/services/AppService');
+      const updatedMission = await missionRepository.update(mission.id, { description: newDescription });
+      setMission(updatedMission);
+    } catch (error) {
+      console.error('Error updating description:', error);
+      throw error;
+    }
+  };
+
   if (loading) {
     return (
       <ProtectedRoute>
@@ -155,8 +180,37 @@ export default function MissionDetail() {
               <Link href="/mission-builder" className="text-[#EAFE07] hover:text-[#EAFE07]/80 transition-colors mb-4 inline-block">
                 ← Back to Dashboard
               </Link>
-              <h1 className="text-4xl font-bold text-white mb-4">{mission.title}</h1>
-              <p className="text-xl text-blue-200">{mission.description}</p>
+              
+              {/* Editable Title */}
+              {mission.userId === user?.id ? (
+                <InlineEdit
+                  value={mission.title}
+                  onSave={handleUpdateTitle}
+                  placeholder="Enter mission title..."
+                  className="mb-4"
+                />
+              ) : (
+                <div className="mb-4">
+                  <h1 className="text-4xl font-bold text-white mb-2">{mission.title}</h1>
+                  <p className="text-sm text-blue-300">Created by {mission.author?.name || 'Anonymous'}</p>
+                </div>
+              )}
+              
+              {/* Editable Description */}
+              {mission.userId === user?.id ? (
+                <InlineEdit
+                  value={mission.description}
+                  onSave={handleUpdateDescription}
+                  placeholder="Enter mission description..."
+                  multiline={true}
+                  maxLength={500}
+                />
+              ) : (
+                <div>
+                  <p className="text-xl text-blue-200 mb-2">{mission.description}</p>
+                  <p className="text-sm text-blue-300">This mission was created by another user and cannot be edited.</p>
+                </div>
+              )}
             </div>
 
             {/* Mission Details */}
@@ -203,6 +257,29 @@ export default function MissionDetail() {
                       {mission.isPublic ? 'Public' : 'Private'}
                     </span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-blue-200">Likes:</span>
+                    <span className="text-white font-semibold flex items-center">
+                      ❤️ {mission.likesCount || 0}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-blue-200">Created:</span>
+                    <span className="text-white font-semibold">
+                      {new Date(mission.createdAt).toLocaleDateString('en-US', { 
+                        weekday: 'long',
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                  {mission.author && (
+                    <div className="flex justify-between">
+                      <span className="text-blue-200">Author:</span>
+                      <span className="text-white font-semibold">{mission.author.name}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -230,12 +307,6 @@ export default function MissionDetail() {
             <div className="flex flex-wrap gap-4">
               {mission.userId === user?.id && (
                 <>
-                  <Link 
-                    href={`/mission-builder/${mission.id}/edit`}
-                    className="bg-[#EAFE07] text-[#07173F] px-6 py-3 rounded-lg font-semibold hover:bg-[#EAFE07]/80 transition-colors"
-                  >
-                    Edit Mission
-                  </Link>
                   <button 
                     onClick={handlePublishMission}
                     disabled={publishing || mission.status === 'published'}

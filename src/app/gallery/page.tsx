@@ -4,17 +4,93 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Pagination from '@/components/Pagination';
+import MissionFilters from '@/components/MissionFilters';
 import { useMissions } from '@/hooks/useMissions';
+import { useLikes } from '@/hooks/useLikes';
+import { useAuth } from '@/hooks/useAuth';
+import { useMissionFilters } from '@/hooks/useMissionFilters';
 
 export default function Gallery() {
-  const { missions, loading, pagination, getPublicMissions } = useMissions();
+  const { missions, loading, pagination, getPublicMissions, updateMission } = useMissions();
+  const { toggleLikeSmart } = useLikes();
+  const { user } = useAuth();
+  const { filters, applyFilters, updateFilters } = useMissionFilters();
+  const [userLikes, setUserLikes] = useState<{[missionId: string]: boolean}>({});
+  const [likingMissions, setLikingMissions] = useState<{[missionId: string]: boolean}>({});
 
   useEffect(() => {
     getPublicMissions(1); // Start with page 1
   }, [getPublicMissions]);
 
+  // Cargar el estado de likes del usuario cuando se cargan las misiones
+  useEffect(() => {
+    if (missions.length > 0 && user && !Object.keys(userLikes).length) {
+      loadUserLikes();
+    }
+  }, [missions, user, userLikes]);
+
+  const loadUserLikes = async () => {
+    if (!user || missions.length === 0) return;
+    
+    try {
+      const { likeRepository } = await import('@/application/services/AppService');
+      const missionIds = missions.map(mission => mission.id);
+      const userLikesData = await likeRepository.getUserLikesForMissions(user.id, missionIds);
+      setUserLikes(userLikesData);
+    } catch (error) {
+      console.error('Error loading user likes:', error);
+    }
+  };
+
   const handlePageChange = (page: number) => {
     getPublicMissions(page);
+  };
+
+  const handleLike = async (missionId: string) => {
+    if (!user) {
+      console.log('No user authenticated, cannot like mission');
+      return;
+    }
+    
+    console.log('Attempting to like mission:', missionId, 'for user:', user.id);
+    
+    // Set loading state for this specific mission
+    setLikingMissions(prev => ({
+      ...prev,
+      [missionId]: true
+    }));
+    
+    try {
+      const newLikedState = await toggleLikeSmart(missionId);
+      console.log('Like toggle result:', newLikedState);
+      
+      // Update local state immediately for better UX
+      setUserLikes(prev => ({
+        ...prev,
+        [missionId]: newLikedState
+      }));
+      
+      // Update mission count locally without full reload
+      const currentMission = missions.find(m => m.id === missionId);
+      if (currentMission) {
+        const newLikesCount = newLikedState 
+          ? (currentMission.likesCount || 0) + 1 
+          : Math.max((currentMission.likesCount || 0) - 1, 0);
+        
+        console.log('Updating mission likes count locally:', newLikesCount);
+        
+        // Update mission count using the hook's updateMission function
+        updateMission(missionId, { likesCount: newLikesCount });
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    } finally {
+      // Clear loading state for this specific mission
+      setLikingMissions(prev => ({
+        ...prev,
+        [missionId]: false
+      }));
+    }
   };
   return (
     <ProtectedRoute>
@@ -27,10 +103,20 @@ export default function Gallery() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-[200px] w-[800px] h-[50px] bg-[#0042A6]/40 rounded-full blur-[50px]"></div>
 
         {/* Main Content */}
-        <main className="pt-32 p-6 relative z-10">
+        <main className="p-6 relative z-10">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-white mb-4">Explore the Fleet</h1>
           <p className="text-xl text-blue-200">Discover habitats designed by other explorers</p>
+        </div>
+        
+        {/* Filters */}
+        <div className="max-w-6xl mx-auto">
+          <MissionFilters
+            filters={filters}
+            onFiltersChange={updateFilters}
+            showStatusFilter={false} // Gallery only shows published missions
+            showDestinationFilter={true}
+          />
         </div>
 
                 {/* Mission Grid */}
@@ -40,9 +126,9 @@ export default function Gallery() {
                     <span className="ml-3 text-white">Loading missions...</span>
                   </div>
                 ) : missions.length > 0 ? (
-                  <div className="max-h-64 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-[#EAFE07]/30 scrollbar-track-transparent hover:scrollbar-thumb-[#EAFE07]/50">
+                  <div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-                      {missions.map((mission) => (
+                      {applyFilters(missions).map((mission) => (
                       <div key={mission.id} className="bg-white/10 backdrop-blur-sm rounded-xl overflow-hidden group hover:bg-white/15 transition-all duration-300 hover:scale-105">
                         {/* 3D Preview Section */}
                         <div className="h-40 bg-gradient-to-br from-[#0042A6]/30 to-[#07173F]/50 relative overflow-hidden">
@@ -101,9 +187,20 @@ export default function Gallery() {
                             </div>
                           </div>
                           
-                          {/* Footer with status and explore button */}
+                          {/* Author Information */}
+                          <div className="flex items-center space-x-3 mb-4">
+                            <div className="w-8 h-8 bg-[#EAFE07] rounded-full flex items-center justify-center text-[#07173F] font-bold text-sm">
+                              {mission.author?.name?.[0] || 'A'}
+                            </div>
+                            <div>
+                              <div className="text-xs text-blue-200">Created by</div>
+                              <div className="text-sm font-semibold text-white">{mission.author?.name || 'Anonymous'}</div>
+                            </div>
+                          </div>
+                          
+                          {/* Footer with status, likes and explore button */}
                           <div className="flex justify-between items-center">
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-3">
                               <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                                 mission.status === 'published' ? 'bg-green-500/20 text-green-300' :
                                 mission.status === 'draft' ? 'bg-yellow-500/20 text-yellow-300' :
@@ -111,6 +208,22 @@ export default function Gallery() {
                               }`}>
                                 {mission.status}
                               </span>
+                              
+                              {/* Like button */}
+                              <button
+                                onClick={() => handleLike(mission.id)}
+                                disabled={likingMissions[mission.id]}
+                                className={`flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-semibold transition-all duration-200 hover:scale-105 ${
+                                  userLikes[mission.id] 
+                                    ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30' 
+                                    : 'bg-white/10 text-white hover:bg-white/20'
+                                } ${likingMissions[mission.id] ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              >
+                                <span className="text-sm">
+                                  {likingMissions[mission.id] ? '⏳' : (userLikes[mission.id] ? '❤️' : '🤍')}
+                                </span>
+                                <span>{mission.likesCount || 0}</span>
+                              </button>
                             </div>
                             
                             <Link 

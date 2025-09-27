@@ -6,15 +6,22 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import MissionStatusSelector from '@/components/MissionStatusSelector';
 import DeleteMissionModal from '@/components/DeleteMissionModal';
 import Pagination from '@/components/Pagination';
+import MissionFilters from '@/components/MissionFilters';
 import { useAuth } from '@/hooks/useAuth';
 import { useMissions } from '@/hooks/useMissions';
+import { useMissionFilters } from '@/hooks/useMissionFilters';
 
 export default function Profile() {
   const { user } = useAuth();
   const { missions, loading, pagination, getUserMissions, updateMissionStatus, deleteMission } = useMissions();
+  const { filters, applyFilters, updateFilters } = useMissionFilters();
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; mission: any }>({ 
     isOpen: false, 
     mission: null 
+  });
+  const [userStats, setUserStats] = useState({
+    totalMissions: 0,
+    totalLikes: 0
   });
 
   console.log('Profile: Component rendered, user:', user?.id, 'missions:', missions.length);
@@ -23,11 +30,39 @@ export default function Profile() {
     if (user?.id) {
       console.log('Profile: Loading missions for user:', user.id);
       getUserMissions(1); // Start with page 1
+      loadUserStats();
     }
   }, [user?.id, getUserMissions]); // Incluir getUserMissions en las dependencias
 
+  const loadUserStats = async () => {
+    if (!user?.id) return;
+    
+    try {
+      // Obtener todas las misiones del usuario para contar el total real
+      const { missionRepository } = await import('@/application/services/AppService');
+      const allUserMissions = await missionRepository.findByUserId(user.id);
+      const totalMissions = allUserMissions.length;
+      
+      // Obtener el total de likes que ha recibido el usuario
+      const { likeRepository } = await import('@/application/services/AppService');
+      const missionIds = allUserMissions.map(mission => mission.id);
+      
+      let totalLikes = 0;
+      if (missionIds.length > 0) {
+        const likesData = await likeRepository.getLikesForMissions(missionIds);
+        totalLikes = Object.values(likesData).reduce((sum, count) => sum + count, 0);
+      }
+      
+      setUserStats({
+        totalMissions,
+        totalLikes
+      });
+    } catch (error) {
+      console.error('Error loading user stats:', error);
+    }
+  };
+
   const publicMissions = missions.filter(mission => mission.isPublic);
-  const totalLikes = publicMissions.length * 42; // Mock calculation
 
   const handleDeleteMission = (mission: any) => {
     setDeleteModal({ isOpen: true, mission });
@@ -63,7 +98,7 @@ export default function Profile() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-[200px] w-[800px] h-[50px] bg-[#0042A6]/40 rounded-full blur-[50px]"></div>
 
         {/* Main Content */}
-        <main className="pt-32 p-6 relative z-10">
+        <main className="p-6 relative z-10">
         <div className="max-w-5xl mx-auto">
                   {/* Profile Header */}
                   <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8 mb-8 flex items-center space-x-6">
@@ -75,16 +110,25 @@ export default function Profile() {
                       <p className="text-blue-200 mb-4">{user?.email}</p>
                       <div className="flex space-x-8 text-sm">
                         <div className="text-center">
-                          <div className="text-xl font-bold text-[#EAFE07]">{missions.length}</div>
+                          <div className="text-xl font-bold text-[#EAFE07]">{userStats.totalMissions}</div>
                           <div className="text-blue-200">Missions</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-xl font-bold text-[#EAFE07]">{totalLikes}</div>
+                          <div className="text-xl font-bold text-[#EAFE07]">{userStats.totalLikes}</div>
                           <div className="text-blue-200">Likes</div>
                         </div>
                         <div className="text-center">
                           <div className="text-blue-200">Member since</div>
-                          <div className="text-lg font-semibold text-white">{new Date(user?.created_at || Date.now()).getFullYear()}</div>
+                          <div className="text-lg font-semibold text-white">
+                            {user?.created_at 
+                              ? new Date(user.created_at).toLocaleDateString('en-US', { 
+                                  year: 'numeric', 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                })
+                              : 'Unknown'
+                            }
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -94,14 +138,24 @@ export default function Profile() {
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8">
             <h2 className="text-2xl font-bold text-white mb-6">My Missions</h2>
             
+            {/* Filters */}
+            <div className="max-w-6xl mx-auto">
+              <MissionFilters
+                filters={filters}
+                onFiltersChange={updateFilters}
+                showStatusFilter={true}
+                showDestinationFilter={true}
+              />
+            </div>
+
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="w-8 h-8 border-2 border-[#EAFE07] border-t-transparent rounded-full animate-spin"></div>
                 <span className="ml-3 text-white">Loading missions...</span>
               </div>
                     ) : missions.length > 0 ? (
-                      <div className="max-h-64 overflow-y-auto space-y-4 pr-2 scrollbar-thin scrollbar-thumb-[#EAFE07]/30 scrollbar-track-transparent hover:scrollbar-thumb-[#EAFE07]/50">
-                        {missions.map((mission) => (
+                      <div className="space-y-4">
+                        {applyFilters(missions).map((mission) => (
                           <div key={mission.id} className="bg-white/5 rounded-lg p-4">
                             <div className="flex justify-between items-start mb-4">
                               <div className="flex-1">
@@ -111,6 +165,20 @@ export default function Profile() {
                                   <span>{mission.passengers} passengers</span>
                                   <span>{mission.duration} days</span>
                                   <span>{mission.destination.toUpperCase()}</span>
+                                </div>
+                                
+                                {/* Likes and Date */}
+                                <div className="flex items-center justify-between text-xs mt-2">
+                                  <div className="flex items-center space-x-3">
+                                    <span className="text-[#EAFE07]">❤️ {mission.likesCount || 0} likes</span>
+                                  </div>
+                                  <div className="text-blue-200">
+                                    Created: {new Date(mission.createdAt).toLocaleDateString('en-US', { 
+                                      month: 'short', 
+                                      day: 'numeric',
+                                      year: 'numeric'
+                                    })}
+                                  </div>
                                 </div>
                               </div>
                               <div className="flex items-center space-x-2">

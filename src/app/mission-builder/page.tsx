@@ -39,7 +39,7 @@ export default function MissionDashboard() {
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-[200px] w-[800px] h-[50px] bg-[#0042A6]/40 rounded-full blur-[50px]"></div>
 
                 {/* Main Content */}
-                <main className="pt-32 p-6 relative z-10">
+                        <main className="p-6 relative z-10">
                     <div className="text-center mb-10">
                         <h1 className="text-4xl font-bold text-white mb-4">Hello {user?.user_metadata?.name || 'Explorer'}</h1>
                         <p className="text-xl text-blue-200">Welcome to your mission dashboard</p>
@@ -79,7 +79,7 @@ export default function MissionDashboard() {
                                 <span className="ml-3 text-white">Loading missions...</span>
                             </div>
                                 ) : missions.length > 0 ? (
-                                    <div className="max-h-64 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-[#EAFE07]/30 scrollbar-track-transparent hover:scrollbar-thumb-[#EAFE07]/50">
+                                    <div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                             {missions.slice(0, 6).map((mission) => (
                                     <Link key={mission.id} href={`/mission-builder/${mission.id}`}>
@@ -99,6 +99,20 @@ export default function MissionDashboard() {
                                                 }`}>
                                                     {mission.status}
                                                 </span>
+                                            </div>
+                                            
+                                            {/* Likes, Author and Date */}
+                                            <div className="flex items-center justify-between text-xs mt-3 pt-3 border-t border-white/10">
+                                                <div className="flex items-center space-x-2">
+                                                    <span className="text-[#EAFE07]">❤️ {mission.likesCount || 0}</span>
+                                                </div>
+                                                <div className="text-blue-200">
+                                                    {new Date(mission.createdAt).toLocaleDateString('en-US', { 
+                                                        month: 'short', 
+                                                        day: 'numeric',
+                                                        year: 'numeric'
+                                                    })}
+                                                </div>
                                             </div>
                                         </div>
                                     </Link>
