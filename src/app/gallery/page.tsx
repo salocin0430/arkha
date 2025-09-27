@@ -227,10 +227,10 @@ export default function Gallery() {
                             </div>
                             
                             <Link 
-                              href={`/mission-builder/${mission.id}`}
+                              href={`/mission-builder/design?missionId=${mission.id}&mode=view`}
                               className="bg-[#EAFE07] text-[#07173F] px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#EAFE07]/80 transition-all duration-200 hover:scale-105"
                             >
-                              Explore
+                              👁️ View 3D
                             </Link>
                           </div>
                         </div>

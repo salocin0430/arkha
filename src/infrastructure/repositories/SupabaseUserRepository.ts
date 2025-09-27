@@ -3,7 +3,7 @@ import { UserRepository } from '../../domain/repositories/UserRepository';
 import { supabase } from '../external/SupabaseClient';
 
 export class SupabaseUserRepository implements UserRepository {
-  async findById(id: string): Promise<User | null> {
+  async findById(_id: string): Promise<User | null> {
     const { data, error } = await supabase.auth.getUser();
     
     if (error || !data.user) return null;
@@ -17,7 +17,7 @@ export class SupabaseUserRepository implements UserRepository {
     });
   }
 
-  async findByEmail(email: string): Promise<User | null> {
+  async findByEmail(_email: string): Promise<User | null> {
     // En Supabase, no podemos buscar por email directamente desde el cliente
     // Esto se maneja a través de auth.signInWithPassword
     return null;
@@ -44,7 +44,7 @@ export class SupabaseUserRepository implements UserRepository {
     });
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(_id: string): Promise<void> {
     // En Supabase, la eliminación se maneja a través de auth.admin.deleteUser
     // Esto requiere permisos de administrador
     throw new Error('User deletion requires admin privileges');

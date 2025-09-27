@@ -15,12 +15,12 @@ export default function MissionDetail() {
   const { id } = useParams();
   const router = useRouter();
   const { user } = useAuth();
-  const { publishMission, updateMissionStatus, deleteMission, updateMission } = useMissions();
+  const { publishMission, updateMissionStatus, deleteMission } = useMissions();
   const [mission, setMission] = useState<Mission | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
-  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; mission: any }>({ 
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; mission: Mission | null }>({ 
     isOpen: false, 
     mission: null 
   });
@@ -72,15 +72,23 @@ export default function MissionDetail() {
     }
   };
 
-  const handleStatusChange = async (missionId: string, newStatus: 'draft' | 'published' | 'archived') => {
-    if (!mission) return;
+  const handleStatusChange = async (missionId: string, newStatus: 'draft' | 'published' | 'archived'): Promise<Mission> => {
+    if (!mission) throw new Error('Mission not found');
     
     try {
-      const updatedMission = await updateMissionStatus(missionId, newStatus);
-      setMission(updatedMission);
+      await updateMissionStatus(missionId, newStatus);
+      // Fetch updated mission
+      const { missionRepository } = await import('@/application/services/AppService');
+      const updatedMission = await missionRepository.findById(missionId);
+      if (updatedMission) {
+        setMission(updatedMission);
+        return updatedMission;
+      }
+      return mission;
     } catch (err) {
       console.error('Error updating mission status:', err);
       alert('Failed to update mission status. Please try again.');
+      return mission;
     }
   };
 
@@ -305,6 +313,14 @@ export default function MissionDetail() {
 
             {/* Actions */}
             <div className="flex flex-wrap gap-4">
+              {/* 3D Design/View Buttons */}
+              <Link 
+                href={`/mission-builder/design?missionId=${mission.id}&mode=${mission.userId === user?.id ? 'edit' : 'view'}`}
+                className="bg-[#EAFE07] text-[#07173F] px-6 py-3 rounded-lg font-semibold hover:bg-[#EAFE07]/80 transition-colors"
+              >
+                {mission.userId === user?.id ? '🎨 Design in 3D' : '👁️ View in 3D'}
+              </Link>
+              
               {mission.userId === user?.id && (
                 <>
                   <button 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Mission } from '@/domain/entities/Mission';
 import { createMission } from '@/application/services/AppService';
 import { useAuth } from './useAuth';

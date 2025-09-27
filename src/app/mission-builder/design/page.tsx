@@ -2,52 +2,84 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import Scene from '@/components/3d/Scene';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import Scene3D from '@/components/Scene3D';
 
-const MissionDesigner = () => {
-    const searchParams = useSearchParams();
-    const destination = searchParams.get('destination');
-    const passengers = searchParams.get('passengers');
-    const time = searchParams.get('time');
+function DesignContent() {
+  const searchParams = useSearchParams();
+  const missionId = searchParams.get('missionId');
+  const mode = (searchParams.get('mode') as 'edit' | 'view') || 'edit';
 
+  if (!missionId) {
     return (
-                <div className="h-screen bg-gradient-to-br from-[#0042A6] to-[#07173F] text-white flex flex-col">
-             {/* Header */}
-            <header className="flex justify-between items-center p-4 bg-gray-900/80 backdrop-blur-sm z-10 border-b border-white/10">
-                <div className="text-sm">
-                    <div>Designing for: <span className="font-bold text-[#EAFE07] capitalize">{destination}</span></div>
-                    <div className="text-xs text-blue-200">{passengers} Passengers, {time} Days</div>
-                </div>
-                <nav className="flex items-center space-x-4">
-                <Link href="/mission-builder/new" className="text-sm text-white hover:text-blue-300 transition-colors">
-                    Back to Config
-                </Link>
-                        <button className="bg-[#EAFE07] text-[#07173F] px-4 py-2 rounded-full hover:bg-[#EAFE07]/80 transition-colors font-semibold text-sm">
-                            Save Mission
-                        </button>
-                </nav>
-            </header>
-            
-            <main className="flex-grow relative">
-                {/* 3D Scene */}
-                <Scene />
-
-                {/* UI Overlays */}
-                <div className="absolute top-4 left-4 bg-white/10 p-4 rounded-lg">
-                    <h2 className="font-bold">Modules</h2>
-                    {/* Module list will go here */}
-                </div>
-            </main>
+      <div className="h-full flex items-center justify-center text-white">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Mission ID not found</h1>
+          <p>Please go back and create a mission first.</p>
         </div>
+      </div>
     );
+  }
+
+  return (
+    <div className="h-full relative">
+      {/* 3D Scene */}
+      <div className="absolute inset-0">
+        <Suspense fallback={
+          <div className="h-full flex items-center justify-center text-white">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#EAFE07] mx-auto mb-4"></div>
+              <p>Loading 3D Scene...</p>
+            </div>
+          </div>
+        }>
+          <Scene3D missionId={missionId} mode={mode} />
+        </Suspense>
+      </div>
+
+      {/* UI Overlay */}
+      <div className="absolute top-4 left-4 z-10">
+        <div className="bg-black/50 backdrop-blur-sm rounded-lg p-4 text-white">
+          <h2 className="text-lg font-bold mb-2">
+            {mode === 'edit' ? '🎨 ARKHA Designer' : '👁️ ARKHA Viewer'}
+          </h2>
+          <p className="text-sm text-gray-300">Mission ID: {missionId}</p>
+          <p className="text-xs text-[#EAFE07] mt-1">
+            {mode === 'edit' ? 'Edit Mode - Click to modify' : 'View Mode - Read Only'}
+          </p>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="absolute bottom-4 left-4 z-10">
+        <div className="bg-black/50 backdrop-blur-sm rounded-lg p-4 text-white">
+          <h3 className="text-sm font-bold mb-2">Controls</h3>
+          <ul className="text-xs space-y-1">
+            <li>• Left click + drag: Rotate</li>
+            <li>• Right click + drag: Pan</li>
+            <li>• Scroll: Zoom</li>
+            {mode === 'edit' ? (
+              <li>• Click objects to select & edit</li>
+            ) : (
+              <li>• Click objects to view details</li>
+            )}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-
 export default function DesignPage() {
-    return (
-        <Suspense fallback={<div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">Loading Mission...</div>}>
-            <MissionDesigner />
-        </Suspense>
-    )
+  return (
+    <ProtectedRoute>
+      <Suspense fallback={
+        <div className="h-full flex items-center justify-center text-white">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#EAFE07]"></div>
+        </div>
+      }>
+        <DesignContent />
+      </Suspense>
+    </ProtectedRoute>
+  );
 }

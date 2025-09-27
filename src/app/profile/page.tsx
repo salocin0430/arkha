@@ -10,12 +10,13 @@ import MissionFilters from '@/components/MissionFilters';
 import { useAuth } from '@/hooks/useAuth';
 import { useMissions } from '@/hooks/useMissions';
 import { useMissionFilters } from '@/hooks/useMissionFilters';
+import { Mission } from '@/domain/entities/Mission';
 
 export default function Profile() {
   const { user } = useAuth();
   const { missions, loading, pagination, getUserMissions, updateMissionStatus, deleteMission } = useMissions();
   const { filters, applyFilters, updateFilters } = useMissionFilters();
-  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; mission: any }>({ 
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; mission: Mission | null }>({ 
     isOpen: false, 
     mission: null 
   });
@@ -64,7 +65,7 @@ export default function Profile() {
 
   const publicMissions = missions.filter(mission => mission.isPublic);
 
-  const handleDeleteMission = (mission: any) => {
+  const handleDeleteMission = (mission: Mission) => {
     setDeleteModal({ isOpen: true, mission });
   };
 
@@ -205,16 +206,16 @@ export default function Profile() {
                               
                               <div className="flex space-x-2">
                                 <Link 
-                                  href={`/mission-builder/${mission.id}`}
+                                  href={`/mission-builder/design?missionId=${mission.id}&mode=view`}
                                   className="bg-[#0042A6]/50 text-white px-3 py-1 rounded text-sm hover:bg-[#0042A6] transition-colors"
                                 >
-                                  View
+                                  👁️ View 3D
                                 </Link>
                                 <Link 
-                                  href={`/mission-builder/${mission.id}/edit`}
+                                  href={`/mission-builder/design?missionId=${mission.id}&mode=edit`}
                                   className="bg-[#EAFE07]/80 text-[#07173F] font-bold px-3 py-1 rounded text-sm hover:bg-[#EAFE07] transition-colors"
                                 >
-                                  Edit
+                                  🎨 Edit 3D
                                 </Link>
                                 <button
                                   onClick={() => handleDeleteMission(mission)}

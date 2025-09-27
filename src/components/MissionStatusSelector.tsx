@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { Mission } from '@/domain/entities/Mission';
 
 interface MissionStatusSelectorProps {
   currentStatus: 'draft' | 'published' | 'archived';
   missionId: string;
-  onStatusChange: (missionId: string, newStatus: 'draft' | 'published' | 'archived') => Promise<any>;
+  onStatusChange: (missionId: string, newStatus: 'draft' | 'published' | 'archived') => Promise<Mission>;
   disabled?: boolean;
 }
 

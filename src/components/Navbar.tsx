@@ -8,7 +8,7 @@ interface NavbarProps {
   currentPage?: string;
 }
 
-export default function Navbar({ variant = 'home', currentPage }: NavbarProps) {
+export default function Navbar({ currentPage }: NavbarProps) {
   const { user, signOut, isAuthenticated, loading } = useAuth();
 
   const handleLogout = async () => {

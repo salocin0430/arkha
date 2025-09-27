@@ -376,7 +376,7 @@ export class SupabaseMissionRepository implements MissionRepository {
 
   async update(id: string, updates: Partial<Omit<Mission, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>): Promise<Mission> {
     // Construir objeto de actualización solo con campos que han cambiado
-    const updateData: any = {
+    const updateData: Record<string, string | number | boolean> = {
       updated_at: new Date().toISOString(),
     };
 

@@ -52,7 +52,7 @@ export default function DeleteMissionModal({
           
           <h2 className="text-xl font-bold text-white mb-2">Delete Mission</h2>
           <p className="text-blue-200 mb-4">
-            Are you sure you want to delete <span className="font-semibold text-white">"{missionTitle}"</span>?
+            Are you sure you want to delete <span className="font-semibold text-white">&quot;{missionTitle}&quot;</span>?
           </p>
           <p className="text-red-400 text-sm mb-6">
             This action cannot be undone. The mission will be permanently removed.
