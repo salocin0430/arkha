@@ -14,6 +14,7 @@ export function useAuth() {
     // Get initial session
     const getInitialSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('useAuth: Initial session:', session);
       if (mounted) {
         setUser(session?.user ?? null);
         setLoading(false);
@@ -25,6 +26,7 @@ export function useAuth() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('useAuth: Auth state change:', event, session);
         if (mounted) {
           setUser(session?.user ?? null);
           setLoading(false);

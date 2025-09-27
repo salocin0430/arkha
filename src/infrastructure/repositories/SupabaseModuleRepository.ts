@@ -12,7 +12,7 @@ export class SupabaseModuleRepository implements ModuleRepository {
 
     if (error) throw new Error(`Failed to fetch modules: ${error.message}`);
 
-    return data.map(module => Module.create({
+    return data.map(module => ({
       id: module.id,
       name: module.name,
       type: module.type,
@@ -50,7 +50,7 @@ export class SupabaseModuleRepository implements ModuleRepository {
 
     if (error) throw new Error(`Failed to save module: ${error.message}`);
 
-    return Module.create({
+    return {
       id: data.id,
       name: data.name,
       type: data.type,
@@ -63,7 +63,7 @@ export class SupabaseModuleRepository implements ModuleRepository {
       missionId: data.mission_id,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
-    });
+    };
   }
 
   async delete(id: string): Promise<void> {

@@ -30,16 +30,17 @@ export default function NewMission() {
 
       const user = JSON.parse(userData);
 
-      // Create mission using Clean Architecture
-      const mission = await createMission.execute({
-        title: `${destination.charAt(0).toUpperCase() + destination.slice(1)} Mission`,
-        description: `A ${time}-day mission to ${destination} for ${passengers} passengers`,
-        destination: destination as 'moon' | 'mars',
-        passengers,
-        duration: time,
-        isPublic: false,
-        userId: user.id,
-      });
+              // Create mission using Clean Architecture
+              const mission = await createMission.execute({
+                title: `${destination.charAt(0).toUpperCase() + destination.slice(1)} Mission`,
+                description: `A ${time}-day mission to ${destination} for ${passengers} passengers`,
+                destination: destination as 'moon' | 'mars',
+                passengers,
+                duration: time,
+                isPublic: false,
+                status: 'draft',
+                userId: user.id,
+              });
 
       // Navigate to the 3D design page
       router.push(`/mission-builder/design?missionId=${mission.id}`);

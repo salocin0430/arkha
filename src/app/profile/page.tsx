@@ -1,41 +1,57 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import ProtectedRoute from '@/components/ProtectedRoute';
-
-// Mock data
-const user = {
-    name: "Laura",
-    email: "laura@example.com",
-    missionsCreated: 2,
-    totalLikes: 127,
-    joinDate: "2024-01-15",
-    avatar: "/avatar-placeholder.png"
-};
-
-const userMissions = [
-    {
-      id: 1,
-      title: "My First Lunar Mission",
-      passengers: 8,
-      duration: 15,
-      destination: "Moon",
-      public: true,
-      likes: 23
-    },
-    {
-      id: 2,
-      title: "Mars Exploration Base",
-      passengers: 16,
-      duration: 90,
-      destination: "Mars",
-      public: false,
-      likes: 104
-    }
-];
+import MissionStatusSelector from '@/components/MissionStatusSelector';
+import DeleteMissionModal from '@/components/DeleteMissionModal';
+import Pagination from '@/components/Pagination';
+import { useAuth } from '@/hooks/useAuth';
+import { useMissions } from '@/hooks/useMissions';
 
 export default function Profile() {
+  const { user } = useAuth();
+  const { missions, loading, pagination, getUserMissions, updateMissionStatus, deleteMission } = useMissions();
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; mission: any }>({ 
+    isOpen: false, 
+    mission: null 
+  });
+
+  console.log('Profile: Component rendered, user:', user?.id, 'missions:', missions.length);
+
+  useEffect(() => {
+    if (user?.id) {
+      console.log('Profile: Loading missions for user:', user.id);
+      getUserMissions(1); // Start with page 1
+    }
+  }, [user?.id, getUserMissions]); // Incluir getUserMissions en las dependencias
+
+  const publicMissions = missions.filter(mission => mission.isPublic);
+  const totalLikes = publicMissions.length * 42; // Mock calculation
+
+  const handleDeleteMission = (mission: any) => {
+    setDeleteModal({ isOpen: true, mission });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteModal.mission) return;
+    
+    try {
+      await deleteMission(deleteModal.mission.id);
+      setDeleteModal({ isOpen: false, mission: null });
+    } catch (error) {
+      console.error('Error deleting mission:', error);
+      alert('Failed to delete mission. Please try again.');
+    }
+  };
+
+  const handleCloseDeleteModal = () => {
+    setDeleteModal({ isOpen: false, mission: null });
+  };
+
+  const handlePageChange = (page: number) => {
+    getUserMissions(page);
+  };
   return (
     <ProtectedRoute>
       <div className="h-full text-white">
@@ -49,80 +65,133 @@ export default function Profile() {
         {/* Main Content */}
         <main className="pt-32 p-6 relative z-10">
         <div className="max-w-5xl mx-auto">
-          {/* Profile Header */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8 mb-8 flex items-center space-x-6">
+                  {/* Profile Header */}
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8 mb-8 flex items-center space-x-6">
                     <div className="w-24 h-24 bg-[#EAFE07] rounded-full flex items-center justify-center text-4xl font-bold text-[#07173F]">
-              {user.name[0]}
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-white mb-1">{user.name}</h1>
-              <p className="text-blue-200 mb-4">{user.email}</p>
-              <div className="flex space-x-8 text-sm">
-                <div className="text-center">
-                          <div className="text-xl font-bold text-[#EAFE07]">{user.missionsCreated}</div>
-                  <div className="text-blue-200">Missions</div>
-                </div>
-                <div className="text-center">
-                          <div className="text-xl font-bold text-[#EAFE07]">{user.totalLikes}</div>
-                  <div className="text-blue-200">Likes</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-blue-200">Member since</div>
-                  <div className="text-lg font-semibold text-white">{new Date(user.joinDate).getFullYear()}</div>
-                </div>
-              </div>
-            </div>
-          </div>
+                      {user?.user_metadata?.name?.[0] || user?.email?.[0] || 'U'}
+                    </div>
+                    <div>
+                      <h1 className="text-3xl font-bold text-white mb-1">{user?.user_metadata?.name || 'Explorer'}</h1>
+                      <p className="text-blue-200 mb-4">{user?.email}</p>
+                      <div className="flex space-x-8 text-sm">
+                        <div className="text-center">
+                          <div className="text-xl font-bold text-[#EAFE07]">{missions.length}</div>
+                          <div className="text-blue-200">Missions</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xl font-bold text-[#EAFE07]">{totalLikes}</div>
+                          <div className="text-blue-200">Likes</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-blue-200">Member since</div>
+                          <div className="text-lg font-semibold text-white">{new Date(user?.created_at || Date.now()).getFullYear()}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
           {/* My Missions */}
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8">
             <h2 className="text-2xl font-bold text-white mb-6">My Missions</h2>
             
-            <div className="space-y-4">
-              {userMissions.map((mission) => (
-                <div key={mission.id} className="bg-white/5 rounded-lg p-4 flex justify-between items-center">
-                    <div>
-                        <h3 className="text-lg font-semibold text-white">{mission.title}</h3>
-                        <div className="flex items-center space-x-4 text-xs text-blue-200 mt-1">
-                            <span>{mission.passengers}p</span>
-                            <span>{mission.duration}d</span>
-                            <span>{mission.destination}</span>
-                        </div>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        mission.public 
-                            ? 'bg-green-500/20 text-green-300' 
-                            : 'bg-gray-500/20 text-gray-300'
-                        }`}>
-                        {mission.public ? 'Public' : 'Private'}
-                        </span>
-                        <div className="flex items-center space-x-1">
-                                <span className="text-[#EAFE07]">❤️</span>
-                            <span className="text-white font-semibold">{mission.likes}</span>
-                        </div>
-                        <div className="flex space-x-2">
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="w-8 h-8 border-2 border-[#EAFE07] border-t-transparent rounded-full animate-spin"></div>
+                <span className="ml-3 text-white">Loading missions...</span>
+              </div>
+                    ) : missions.length > 0 ? (
+                      <div className="max-h-64 overflow-y-auto space-y-4 pr-2 scrollbar-thin scrollbar-thumb-[#EAFE07]/30 scrollbar-track-transparent hover:scrollbar-thumb-[#EAFE07]/50">
+                        {missions.map((mission) => (
+                          <div key={mission.id} className="bg-white/5 rounded-lg p-4">
+                            <div className="flex justify-between items-start mb-4">
+                              <div className="flex-1">
+                                <h3 className="text-lg font-semibold text-white mb-2">{mission.title}</h3>
+                                <p className="text-blue-200 text-sm mb-3">{mission.description}</p>
+                                <div className="flex items-center space-x-4 text-xs text-blue-200">
+                                  <span>{mission.passengers} passengers</span>
+                                  <span>{mission.duration} days</span>
+                                  <span>{mission.destination.toUpperCase()}</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                  mission.isPublic 
+                                    ? 'bg-green-500/20 text-green-300' 
+                                    : 'bg-gray-500/20 text-gray-300'
+                                }`}>
+                                  {mission.isPublic ? 'Public' : 'Private'}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {/* Status Selector */}
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center space-x-3">
+                                <span className="text-sm text-blue-200">Status:</span>
+                                <MissionStatusSelector
+                                  currentStatus={mission.status}
+                                  missionId={mission.id}
+                                  onStatusChange={updateMissionStatus}
+                                />
+                              </div>
+                              
+                              <div className="flex space-x-2">
                                 <Link 
-                                    href={`/mission-builder/edit/${mission.id}`}
-                                    className="bg-[#0042A6]/50 text-white px-3 py-1 rounded text-sm hover:bg-[#0042A6] transition-colors"
+                                  href={`/mission-builder/${mission.id}`}
+                                  className="bg-[#0042A6]/50 text-white px-3 py-1 rounded text-sm hover:bg-[#0042A6] transition-colors"
                                 >
-                            Edit
-                        </Link>
+                                  View
+                                </Link>
                                 <Link 
-                                    href={`/gallery/${mission.id}`}
-                                    className="bg-[#EAFE07]/80 text-[#07173F] font-bold px-3 py-1 rounded text-sm hover:bg-[#EAFE07] transition-colors"
+                                  href={`/mission-builder/${mission.id}/edit`}
+                                  className="bg-[#EAFE07]/80 text-[#07173F] font-bold px-3 py-1 rounded text-sm hover:bg-[#EAFE07] transition-colors"
                                 >
-                            View
-                        </Link>
-                        </div>
-                    </div>
-                </div>
-              ))}
+                                  Edit
+                                </Link>
+                                <button
+                                  onClick={() => handleDeleteMission(mission)}
+                                  className="bg-red-500/80 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition-colors"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-blue-200 mb-4">No missions yet. Create your first space habitat!</p>
+                <Link href="/mission-builder/new" className="bg-[#EAFE07] text-[#07173F] px-6 py-3 rounded-lg font-semibold hover:bg-[#EAFE07]/80 transition-colors">
+                  Create Mission
+                </Link>
+              </div>
+            )}
+            
+            {/* Pagination */}
+            <div className="mt-8">
+              <div className="text-white text-center mb-4">
+                Debug: {missions.length} missions, Page {pagination.currentPage} of {pagination.totalPages}
+              </div>
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                onPageChange={handlePageChange}
+                loading={loading}
+              />
             </div>
           </div>
-        </div>
-      </main>
-      </div>
-    </ProtectedRoute>
-  );
-}
+                </div>
+              </main>
+              
+              {/* Delete Confirmation Modal */}
+              <DeleteMissionModal
+                isOpen={deleteModal.isOpen}
+                onClose={handleCloseDeleteModal}
+                onConfirm={handleConfirmDelete}
+                missionTitle={deleteModal.mission?.title || ''}
+              />
+              </div>
+            </ProtectedRoute>
+          );
+        }

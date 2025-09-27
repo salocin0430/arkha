@@ -1,0 +1,280 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import MissionStatusSelector from '@/components/MissionStatusSelector';
+import DeleteMissionModal from '@/components/DeleteMissionModal';
+import { useAuth } from '@/hooks/useAuth';
+import { useMissions } from '@/hooks/useMissions';
+import { Mission } from '@/domain/entities/Mission';
+
+export default function MissionDetail() {
+  const { id } = useParams();
+  const router = useRouter();
+  const { user } = useAuth();
+  const { publishMission, updateMissionStatus, deleteMission } = useMissions();
+  const [mission, setMission] = useState<Mission | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; mission: any }>({ 
+    isOpen: false, 
+    mission: null 
+  });
+
+  useEffect(() => {
+    const fetchMission = async () => {
+      try {
+        setLoading(true);
+        const { missionRepository } = await import('@/application/services/AppService');
+        const missionData = await missionRepository.findById(id as string);
+        
+        if (!missionData) {
+          setError('Mission not found');
+          return;
+        }
+
+        // Check if user can view this mission
+        if (!missionData.isPublic && missionData.userId !== user?.id) {
+          setError('You do not have permission to view this mission');
+          return;
+        }
+
+        setMission(missionData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch mission');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id && user) {
+      fetchMission();
+    }
+  }, [id, user]);
+
+  const handlePublishMission = async () => {
+    if (!mission) return;
+    
+    try {
+      setPublishing(true);
+      const updatedMission = await publishMission(mission.id);
+      setMission(updatedMission);
+      alert('Mission published successfully!');
+    } catch (err) {
+      console.error('Error publishing mission:', err);
+      alert('Failed to publish mission. Please try again.');
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const handleStatusChange = async (missionId: string, newStatus: 'draft' | 'published' | 'archived') => {
+    if (!mission) return;
+    
+    try {
+      const updatedMission = await updateMissionStatus(missionId, newStatus);
+      setMission(updatedMission);
+    } catch (err) {
+      console.error('Error updating mission status:', err);
+      alert('Failed to update mission status. Please try again.');
+    }
+  };
+
+  const handleDeleteMission = () => {
+    if (!mission) return;
+    setDeleteModal({ isOpen: true, mission });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!mission) return;
+    
+    try {
+      await deleteMission(mission.id);
+      router.push('/mission-builder');
+    } catch (error) {
+      console.error('Error deleting mission:', error);
+      alert('Failed to delete mission. Please try again.');
+    }
+  };
+
+  const handleCloseDeleteModal = () => {
+    setDeleteModal({ isOpen: false, mission: null });
+  };
+
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <div className="h-full text-white">
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <div className="w-8 h-8 border-2 border-[#EAFE07] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-white">Loading mission...</p>
+            </div>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
+  if (error || !mission) {
+    return (
+      <ProtectedRoute>
+        <div className="h-full text-white">
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-white mb-4">Mission Not Found</h1>
+              <p className="text-blue-200 mb-6">{error || 'This mission does not exist'}</p>
+              <Link href="/mission-builder" className="bg-[#EAFE07] text-[#07173F] px-6 py-3 rounded-lg font-semibold hover:bg-[#EAFE07]/80 transition-colors">
+                Back to Dashboard
+              </Link>
+            </div>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
+  return (
+    <ProtectedRoute>
+      <div className="h-full text-white">
+        {/* Background Glow Effect */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+          <div className="w-[600px] h-[600px] bg-[#0042A6]/30 rounded-full blur-[150px]" />
+        </div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[200px] w-[800px] h-[50px] bg-[#0042A6]/40 rounded-full blur-[50px]"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-[200px] w-[800px] h-[50px] bg-[#0042A6]/40 rounded-full blur-[50px]"></div>
+
+        {/* Main Content */}
+        <main className="pt-32 p-6 relative z-10">
+          <div className="max-w-4xl mx-auto">
+            {/* Header */}
+            <div className="mb-8">
+              <Link href="/mission-builder" className="text-[#EAFE07] hover:text-[#EAFE07]/80 transition-colors mb-4 inline-block">
+                ← Back to Dashboard
+              </Link>
+              <h1 className="text-4xl font-bold text-white mb-4">{mission.title}</h1>
+              <p className="text-xl text-blue-200">{mission.description}</p>
+            </div>
+
+            {/* Mission Details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+              {/* Mission Info */}
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6">
+                <h2 className="text-2xl font-bold text-white mb-4">Mission Details</h2>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-blue-200">Destination:</span>
+                    <span className="text-white font-semibold">{mission.destination.toUpperCase()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-blue-200">Passengers:</span>
+                    <span className="text-white font-semibold">{mission.passengers}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-blue-200">Duration:</span>
+                    <span className="text-white font-semibold">{mission.duration} days</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-blue-200">Status:</span>
+                    {mission.userId === user?.id ? (
+                      <MissionStatusSelector
+                        currentStatus={mission.status}
+                        missionId={mission.id}
+                        onStatusChange={handleStatusChange}
+                      />
+                    ) : (
+                      <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                        mission.status === 'published' ? 'bg-green-500/20 text-green-300' :
+                        mission.status === 'draft' ? 'bg-yellow-500/20 text-yellow-300' :
+                        'bg-gray-500/20 text-gray-300'
+                      }`}>
+                        {mission.status}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-blue-200">Visibility:</span>
+                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                      mission.isPublic ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'
+                    }`}>
+                      {mission.isPublic ? 'Public' : 'Private'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3D Preview Placeholder */}
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6">
+                <h2 className="text-2xl font-bold text-white mb-4">3D Preview</h2>
+                <div className="h-64 bg-gradient-to-br from-[#0042A6]/30 to-[#07173F]/50 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-[#EAFE07]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                      {mission.destination === 'moon' && (
+                        <span className="text-2xl">🌙</span>
+                      )}
+                      {mission.destination === 'mars' && (
+                        <span className="text-2xl">🔴</span>
+                      )}
+                    </div>
+                    <p className="text-blue-200">3D visualization coming soon</p>
+                    <p className="text-sm text-blue-300 mt-2">Interactive 3D design tools will be available here</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-wrap gap-4">
+              {mission.userId === user?.id && (
+                <>
+                  <Link 
+                    href={`/mission-builder/${mission.id}/edit`}
+                    className="bg-[#EAFE07] text-[#07173F] px-6 py-3 rounded-lg font-semibold hover:bg-[#EAFE07]/80 transition-colors"
+                  >
+                    Edit Mission
+                  </Link>
+                  <button 
+                    onClick={handlePublishMission}
+                    disabled={publishing || mission.status === 'published'}
+                    className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+                      mission.status === 'published' 
+                        ? 'bg-green-500 text-white cursor-not-allowed' 
+                        : publishing
+                        ? 'bg-gray-500 text-white cursor-not-allowed'
+                        : 'bg-[#0042A6] text-white hover:bg-[#0042A6]/80'
+                    }`}
+                  >
+                    {publishing ? 'Publishing...' : mission.status === 'published' ? 'Published' : 'Publish Mission'}
+                  </button>
+                  <button 
+                    onClick={handleDeleteMission}
+                    className="bg-red-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-600 transition-colors"
+                  >
+                    Delete Mission
+                  </button>
+                </>
+              )}
+              <Link 
+                href="/mission-builder"
+                className="bg-white/20 text-white px-6 py-3 rounded-lg font-semibold hover:bg-white/30 transition-colors"
+              >
+                Back to Dashboard
+              </Link>
+            </div>
+          </div>
+        </main>
+        
+        {/* Delete Confirmation Modal */}
+        <DeleteMissionModal
+          isOpen={deleteModal.isOpen}
+          onClose={handleCloseDeleteModal}
+          onConfirm={handleConfirmDelete}
+          missionTitle={deleteModal.mission?.title || ''}
+        />
+      </div>
+    </ProtectedRoute>
+  );
+}
