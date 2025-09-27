@@ -206,16 +206,10 @@ export default function Profile() {
                               
                               <div className="flex space-x-2">
                                 <Link 
-                                  href={`/mission-builder/design?missionId=${mission.id}&mode=view`}
+                                  href={`/mission-builder/${mission.id}`}
                                   className="bg-[#0042A6]/50 text-white px-3 py-1 rounded text-sm hover:bg-[#0042A6] transition-colors"
                                 >
-                                  👁️ View 3D
-                                </Link>
-                                <Link 
-                                  href={`/mission-builder/design?missionId=${mission.id}&mode=edit`}
-                                  className="bg-[#EAFE07]/80 text-[#07173F] font-bold px-3 py-1 rounded text-sm hover:bg-[#EAFE07] transition-colors"
-                                >
-                                  🎨 Edit 3D
+                                  View
                                 </Link>
                                 <button
                                   onClick={() => handleDeleteMission(mission)}
