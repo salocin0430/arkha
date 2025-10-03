@@ -1,0 +1,122 @@
+{
+  "id": "arkha_modules",
+  "name": "ARKHA Space Modules",
+  "defaultTime": 12,
+  "cameraPosition": [0, 8, 12],
+  "cameraTarget": [0, 0, 0],
+  "floorMaterial": "marble",
+  "baseModel": {
+    "id": "apollo_14_terrain",
+    "name": "Apollo 14 Landing Site",
+    "type": "Terrain",
+    "description": "Terreno real del sitio de aterrizaje de Apollo 14 en la Luna. Topografía auténtica para misiones lunares.",
+    "position": [0, -5, 0],
+    "rotation": [0, 0, 0],
+    "scale": [0.01, 0.01, 0.01],
+    "typeModel": "glb",
+    "path": "/models/extraterrestrial_lands/Apollo_14.glb",
+    "interactive": false,
+    "hidden": true,
+    "maps": {
+      "normal": "",
+      "roughness": "",
+      "metalness": "",
+      "ao": "",
+      "emissive": ""
+    },
+    "materialProperties": {
+      "roughness": 0.9,
+      "metalness": 0.0,
+      "emissiveIntensity": 0.0,
+      "aoMapIntensity": 1.0,
+      "normalScale": 1.0,
+      "reflective": false,
+      "opacity": 1.0,
+      "transparent": false
+    }
+  },
+  "modules": [
+    {
+      "id": "access_core_l1_v1",
+      "name": "ARKHA Access Core L1 V1",
+      "type": "Access Module",
+      "description": "Módulo de acceso principal de nivel 1, versión 1. Punto de entrada principal para la estación espacial.",
+      "position": [0, 0, 0],
+      "rotation": [0, 0, 0],
+      "scale": [1, 1, 1],
+      "typeModel": "glb",
+      "path": "/models/modules/ARKHA_AccessCore_L1_V1.glb",
+      "interactive": true,
+      "hidden": false,
+      "image": "/models/modules/ARKHA_AccessCore_L1_V1_preview.png",
+      "price": 0,
+      "currency": "ARKHA",
+      "maps": {
+        "normal": "",
+        "roughness": "",
+        "metalness": "",
+        "ao": "",
+        "emissive": ""
+      },
+      "materialProperties": {
+        "roughness": 0.7,
+        "metalness": 0.3,
+        "emissiveIntensity": 0.1,
+        "aoMapIntensity": 1.0,
+        "normalScale": 1.0,
+        "reflective": true
+      }
+    },
+    {
+      "id": "lab_tri_l2_v1",
+      "name": "ARKHA Lab Tri L2 V1",
+      "type": "Laboratory Module",
+      "description": "Módulo de laboratorio triangular de nivel 2, versión 1. Equipado con instrumentación científica avanzada.",
+      "position": [10, 0, 0],
+      "rotation": [0, 0, 0],
+      "scale": [1, 1, 1],
+      "typeModel": "glb",
+      "path": "/models/modules/ARKHA_LabTri_L2_V1.glb",
+      "interactive": true,
+      "hidden": false,
+      "image": "/models/modules/ARKHA_LabTri_L2_V1_preview.png",
+      "price": 0,
+      "currency": "ARKHA",
+      "maps": {
+        "normal": "",
+        "roughness": "",
+        "metalness": "",
+        "ao": "",
+        "emissive": ""
+      },
+      "materialProperties": {
+        "roughness": 0.5,
+        "metalness": 0.4,
+        "emissiveIntensity": 0.2,
+        "aoMapIntensity": 1.0,
+        "normalScale": 1.0,
+        "reflective": true
+      }
+    }
+  ],
+  "lighting": {
+    "ambient": {
+      "color": "0x404040",
+      "intensity": 0.4,
+      "name": "ambientLight"
+    },
+    "directional": {
+      "color": "0xffffff",
+      "intensity": 1.0,
+      "position": [10, 10, 5],
+      "castShadow": true,
+      "name": "mainLight"
+    }
+  },
+  "environment": {
+    "skyColor": "0x87ceeb",
+    "groundColor": "0x8b4513",
+    "fogEnabled": false
+  }
+}
+
