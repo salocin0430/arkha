@@ -67,6 +67,9 @@ function ModuleModel({ moduleConfig, isSelected, onSelect }: {
           child.castShadow = true;
           child.receiveShadow = true;
           
+          // Marcar como interactivo para el raycaster
+          child.userData.interactive = true;
+          
           // Aplicar propiedades de material si están definidas
           if (moduleConfig.materialProperties && child.material) {
             const material = child.material as THREE.MeshStandardMaterial;
@@ -273,6 +276,189 @@ function ModuleScene({ modulesConfig }: { modulesConfig: ArkhaModulesConfig }) {
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.Camera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  
+  // Estados para primera persona - EXACTAMENTE como tu proyecto de referencia
+  const [keysPressed, setKeysPressed] = useState({
+    w: false, a: false, s: false, d: false
+  });
+
+  // Función para configurar la cámara para primera persona
+  const setupFirstPersonCamera = useCallback(() => {
+    if (!cameraRef.current || !controlsRef.current) return;
+    
+    const camera = cameraRef.current;
+    const controls = controlsRef.current;
+    
+    if (viewMode === 'firstPerson') {
+      console.log('🎯 Configurando cámara para primera persona');
+      
+      // Posición de primera persona (altura de persona)
+      camera.position.set(0, 1.7, 5);
+      controls.target.set(0, 1.7, 0); // Mirar al frente a la altura de los ojos
+      
+      // ✅ HABILITAR OrbitControls para rotación con mouse (como en tu proyecto)
+      controls.enabled = true;
+      controls.update();
+    } else if (viewMode === 'fly') {
+      console.log('🎯 Configurando cámara para vuelo');
+      
+      // Posición de vuelo
+      camera.position.set(0, 3, 5);
+      controls.target.set(0, 3, 0); // Mirar al frente a la altura de vuelo
+      
+      // ✅ HABILITAR OrbitControls para rotación con mouse (como en tu proyecto)
+      controls.enabled = true;
+      controls.update();
+    } else {
+      console.log('🎯 Restaurando vista normal');
+      
+      // Restaurar vista normal
+      camera.position.set(modulesConfig.cameraPosition[0], modulesConfig.cameraPosition[1], modulesConfig.cameraPosition[2]);
+      controls.target.set(modulesConfig.cameraTarget[0], modulesConfig.cameraTarget[1], modulesConfig.cameraTarget[2]);
+      camera.rotation.set(0, 0, 0);
+      
+      // Habilitar OrbitControls en modo órbita
+      controls.enabled = true;
+      controls.update();
+    }
+  }, [viewMode, modulesConfig.cameraPosition, modulesConfig.cameraTarget]);
+
+  // Función para mover la cámara según las teclas presionadas - EXACTAMENTE como tu proyecto
+  const updateCameraPosition = useCallback(() => {
+    if (!cameraRef.current || !controlsRef.current) return;
+    
+    const camera = cameraRef.current;
+    const controls = controlsRef.current;
+    
+    // Verificar si hay alguna tecla presionada
+    if (!keysPressed.w && !keysPressed.a && !keysPressed.s && !keysPressed.d) return;
+    
+    // Obtener la dirección de la cámara usando quaternion (como en tu proyecto de referencia)
+    const direction = new THREE.Vector3(0, 0, -1);
+    direction.applyQuaternion(camera.quaternion);
+    direction.y = 0; // Mantener movimiento horizontal
+    direction.normalize();
+    
+    // Vector derecha (perpendicular a la dirección)
+    const right = new THREE.Vector3(1, 0, 0);
+    right.applyQuaternion(camera.quaternion);
+    right.y = 0; // Mantener movimiento horizontal
+    right.normalize();
+    
+    // Velocidad de movimiento
+    const speed = 0.07;
+    
+    // Aplicar movimiento según las teclas presionadas
+    if (keysPressed.w) {
+      camera.position.x += direction.x * speed;
+      camera.position.z += direction.z * speed;
+    }
+    if (keysPressed.s) {
+      camera.position.x -= direction.x * speed;
+      camera.position.z -= direction.z * speed;
+    }
+    
+    // Movimiento lateral
+    if (keysPressed.a) {
+      camera.position.x -= right.x * speed;
+      camera.position.z -= right.z * speed;
+    }
+    if (keysPressed.d) {
+      camera.position.x += right.x * speed;
+      camera.position.z += right.z * speed;
+    }
+    
+    // Actualizar el punto de mira (EXACTAMENTE como en tu proyecto de referencia)
+    controls.target.set(
+      camera.position.x + direction.x,  // ✅ Distancia de 1 unidad
+      controls.target.y,
+      camera.position.z + direction.z
+    );
+    
+    controls.update();
+  }, [keysPressed]);
+
+  // Event listeners para teclado - EXACTAMENTE como tu proyecto
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (viewMode === 'orbit') {
+        console.log('🚫 Modo órbita - ignorando tecla:', event.key);
+        return;
+      }
+      
+      const key = event.key.toLowerCase();
+      if (['w', 'a', 's', 'd', 'q', 'e'].includes(key)) {
+        event.preventDefault();
+        console.log('⌨️ Tecla presionada:', key, 'Modo:', viewMode);
+        setKeysPressed(prev => {
+          const newState = { ...prev, [key]: true };
+          console.log('🎮 Nuevo estado de teclas:', newState);
+          return newState;
+        });
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      if (['w', 'a', 's', 'd', 'q', 'e'].includes(key)) {
+        event.preventDefault();
+        console.log('⌨️ Tecla soltada:', key);
+        setKeysPressed(prev => {
+          const newState = { ...prev, [key]: false };
+          console.log('🎮 Nuevo estado de teclas:', newState);
+          return newState;
+        });
+      }
+    };
+
+    if (viewMode !== 'orbit') {
+      console.log('🎧 Agregando event listeners de teclado para modo:', viewMode);
+      window.addEventListener('keydown', handleKeyDown);
+      window.addEventListener('keyup', handleKeyUp);
+      return () => {
+        console.log('🎧 Removiendo event listeners de teclado');
+        window.removeEventListener('keydown', handleKeyDown);
+        window.removeEventListener('keyup', handleKeyUp);
+      };
+    } else {
+      console.log('🚫 Modo órbita - no agregando event listeners de teclado');
+    }
+  }, [viewMode]);
+
+  // ❌ Controles de mouse ELIMINADOS - OrbitControls maneja la rotación automáticamente
+
+  // Bucle de animación - EXACTAMENTE como tu proyecto de referencia
+  useEffect(() => {
+    if (viewMode === 'orbit') return;
+    
+    console.log('🚀 Iniciando bucle de animación para control por teclado, modo:', viewMode);
+    
+    let animationId: number;
+    
+    const animate = () => {
+      // Actualizar la posición de la cámara según las teclas presionadas
+      updateCameraPosition();
+      
+      // Solicitar el siguiente frame
+      animationId = requestAnimationFrame(animate);
+    };
+    
+    // Iniciar el bucle
+    animationId = requestAnimationFrame(animate);
+    
+    // Limpiar al desmontar
+    return () => {
+      console.log('🛑 Deteniendo bucle de animación');
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+    };
+  }, [viewMode, updateCameraPosition]);
+
+  // Configurar cámara cuando cambia el modo de vista
+  useEffect(() => {
+    setupFirstPersonCamera();
+  }, [setupFirstPersonCamera]);
 
   // Evento dragging-changed exactamente como en tu proyecto anterior
   useEffect(() => {
@@ -306,49 +492,6 @@ function ModuleScene({ modulesConfig }: { modulesConfig: ArkhaModulesConfig }) {
     }
   }, [selectedModule]);
 
-  // Controles de teclado para primera persona
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (viewMode === 'orbit') return;
-      
-      event.preventDefault();
-      const speed = 1.0;
-      const currentPos = [...cameraPosition] as [number, number, number];
-      
-      console.log('Tecla presionada:', event.key, 'Modo:', viewMode);
-      
-      switch (event.key.toLowerCase()) {
-        case 'w':
-          setCameraPosition([currentPos[0], currentPos[1], currentPos[2] - speed]);
-          break;
-        case 's':
-          setCameraPosition([currentPos[0], currentPos[1], currentPos[2] + speed]);
-          break;
-        case 'a':
-          setCameraPosition([currentPos[0] - speed, currentPos[1], currentPos[2]]);
-          break;
-        case 'd':
-          setCameraPosition([currentPos[0] + speed, currentPos[1], currentPos[2]]);
-          break;
-        case 'q':
-          setCameraPosition([currentPos[0], currentPos[1] + speed, currentPos[2]]);
-          break;
-        case 'e':
-          setCameraPosition([currentPos[0], currentPos[1] - speed, currentPos[2]]);
-          break;
-        case 'r':
-          // Reset camera
-          setCameraPosition(modulesConfig.cameraPosition);
-          setCameraTarget(modulesConfig.cameraTarget);
-          break;
-      }
-    };
-
-    if (viewMode !== 'orbit') {
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    }
-  }, [viewMode, cameraPosition, modulesConfig.cameraPosition, modulesConfig.cameraTarget]);
   
   // Resetear la posición del módulo seleccionado
   const resetModulePosition = () => {
@@ -394,9 +537,46 @@ function ModuleScene({ modulesConfig }: { modulesConfig: ArkhaModulesConfig }) {
           fov: 75 
         }} 
         onClick={(e: any) => {
-          console.log('Canvas clickeado, target:', e.target);
-          if (e.target === e.currentTarget) {
-            console.log('Deseleccionando módulo');
+          if (!sceneRef.current || !cameraRef.current || !rendererRef.current) return;
+          
+          // Calcular posición del mouse normalizada
+          const rect = rendererRef.current.domElement.getBoundingClientRect();
+          const mouse = new THREE.Vector2();
+          mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+          mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+          
+          // Lanzar rayo desde la cámara
+          const raycaster = new THREE.Raycaster();
+          raycaster.setFromCamera(mouse, cameraRef.current);
+          
+          // Obtener solo los objetos interactivos para intersección
+          const selectableObjects: any[] = [];
+          sceneRef.current.traverse((object: any) => {
+            if (object.isMesh && object.userData && object.userData.interactive === true) {
+              selectableObjects.push(object);
+            }
+          });
+          
+          // Calcular intersecciones
+          const intersects = raycaster.intersectObjects(selectableObjects, false);
+          
+          if (intersects.length > 0) {
+            // Encontrar el objeto raíz
+            let selectedObj = intersects[0].object;
+            
+            // Si el objeto es parte de un grupo, seleccionar el grupo
+            while (selectedObj.parent && selectedObj.parent !== sceneRef.current && selectedObj.parent.type !== 'Scene') {
+              if (selectedObj.parent.userData && selectedObj.parent.userData.id) {
+                selectedObj = selectedObj.parent;
+                break;
+              }
+              selectedObj = selectedObj.parent;
+            }
+            
+            // Seleccionar el objeto
+            selectObject(selectedObj);
+          } else {
+            // Si no hay intersección, deseleccionar el objeto actual
             selectObject(null);
           }
         }}
@@ -464,18 +644,17 @@ function ModuleScene({ modulesConfig }: { modulesConfig: ArkhaModulesConfig }) {
           ))
         }
         
-        {/* Controles de órbita */}
-        {viewMode === 'orbit' && (
-          <OrbitControls 
-            ref={controlsRef}
-            enablePan={!isTransforming}
-            enableZoom={!isTransforming}
-            enableRotate={!isTransforming}
-            target={cameraTarget}
-            minDistance={5}
-            maxDistance={50}
-          />
-        )}
+        {/* Controles de órbita - SIEMPRE habilitados */}
+        <OrbitControls 
+          ref={controlsRef}
+          enablePan={viewMode === 'orbit' && !isTransforming}
+          enableZoom={true}  // ✅ Zoom habilitado en todos los modos
+          enableRotate={true}  // ✅ Rotación habilitada en todos los modos
+          target={cameraTarget}
+          minDistance={viewMode === 'orbit' ? 5 : 0.5}
+          maxDistance={viewMode === 'orbit' ? 50 : 100}
+          enabled={true}  // ✅ SIEMPRE habilitado
+        />
         
         {/* Controles de transformación - exactamente como en tu proyecto anterior */}
         {selectedModule && viewMode === 'orbit' && (
@@ -544,9 +723,9 @@ function ModuleScene({ modulesConfig }: { modulesConfig: ArkhaModulesConfig }) {
                     </div>
                     {viewMode !== 'orbit' && (
                       <div className="text-xs text-gray-400 mt-2">
-                        <div>WASD: Mover</div>
-                        <div>Q/E: Subir/Bajar</div>
-                        <div>R: Reset cámara</div>
+                        <div>WASD: Mover cámara</div>
+                        <div>Mouse: Mirar alrededor</div>
+                        <div>Scroll: Zoom</div>
                       </div>
                     )}
                   </div>
