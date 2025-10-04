@@ -109,8 +109,8 @@ class ModuleConfigService {
       const config = await this.getModulesConfig(configId);
       if (!config) return null;
 
-      const module = config.modules.find(m => m.id === moduleId);
-      return module || null;
+      const foundModule = config.modules.find(m => m.id === moduleId);
+      return foundModule || null;
     } catch (error) {
       console.error('Error obteniendo módulo:', error);
       return null;
